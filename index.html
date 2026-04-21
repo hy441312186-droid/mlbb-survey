@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLBB Survey / 问卷调查</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; }
+  .page { max-width: 680px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  .lang-bar { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+  .lang-btn { padding: 7px 18px; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-size: 13px; color: #666; transition: all 0.15s; }
+  .lang-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; font-weight: 500; }
+  .card { background: #fff; border-radius: 14px; padding: 1.75rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 1rem; }
+  .survey-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .survey-sub { font-size: 13px; color: #666; line-height: 1.6; }
+  .required-note { font-size: 12px; color: #999; margin-bottom: 1rem; }
+  .section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #999; margin: 1.5rem 0 0.75rem; padding-bottom: 6px; border-bottom: 1px solid #f0f0f0; }
+  .q-block { margin-bottom: 1.25rem; }
+  .q-label { font-size: 14px; color: #1a1a1a; margin-bottom: 8px; line-height: 1.5; font-weight: 500; }
+  .q-sub { font-size: 12px; color: #aaa; margin-bottom: 6px; }
+  .radio-group, .check-group { display: flex; flex-direction: column; gap: 7px; }
+  .opt { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 2px 0; }
+  .opt input { width: 16px; height: 16px; accent-color: #1a1a1a; flex-shrink: 0; cursor: pointer; }
+  .opt span { font-size: 13px; color: #444; }
+  .opt:hover span { color: #1a1a1a; }
+  .text-input { width: 100%; padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13px; color: #1a1a1a; background: #fafafa; transition: border 0.15s; }
+  .text-input:focus { outline: none; border-color: #1a1a1a; background: #fff; }
+  .submit-btn { width: 100%; padding: 14px; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 1.5rem; transition: opacity 0.2s; }
+  .submit-btn:hover { opacity: 0.85; }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .status-bar { margin-top: 12px; font-size: 13px; text-align: center; min-height: 22px; }
+  .s-ok { color: #16a34a; } .s-err { color: #dc2626; } .s-loading { color: #999; }
+  .success-wrap { text-align: center; padding: 3rem 1rem; }
+  .success-icon { width: 60px; height: 60px; border-radius: 50%; background: #f0fdf4; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+  .success-icon svg { width: 26px; height: 26px; color: #16a34a; }
+  .success-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .success-sub { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 1.5rem; }
+  .again-btn { padding: 10px 28px; border: 1px solid #ddd; border-radius: 8px; background: #fff; font-size: 14px; cursor: pointer; color: #444; }
+  .again-btn:hover { background: #f5f5f5; }
+  @media (max-width: 500px) { .page { padding: 1rem 0.75rem 3rem; } .card { padding: 1.25rem; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="lang-bar">
+    <button class="lang-btn active" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" onclick="setLang('en')">English</button>
+    <button class="lang-btn" onclick="setLang('id')">Indonesia</button>
+  </div>
+  <div id="main"></div>
+</div>
+<script>
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyS53UOF3NBVaDaoV_eEfgwEaH_56o9U0NMfeSNnE99aNtsVQq-ejj9HYRUrVsIMwej/exec';
+
+const T = {
+  zh: {
+    title:'MLBB 陪伴型周边市场调查问卷',
+    sub:'帮助我们了解东南亚年轻人对 MLBB IP 陪伴型玩偶的喜好',
+    req:'* 为必填题',
+    s1:'第一部分：基本信息', s2:'第二部分：MLBB 游戏关联', s3:'第三部分：陪伴型周边态度',
+    s4:'第四部分：设计偏好', s5:'第五部分：价格与购买渠道', s6:'第六部分：社交媒体影响',
+    q1:'1. 您的性别是？', q1o:['男 (Male)','女 (Female)','其他/不愿透露'],
+    q2:'2. 您是否了解 Mobile Legends: Bang Bang (MLBB)？ *', q2o:['我正在玩','我听说过但没玩过','我不知道这个游戏'],
+    q3:'3. 如果您玩 MLBB，请问您玩了多长时间？', q3n:'（仅"正在玩"者作答）',
+    q3o:['不到 6 个月','6 个月到 1 年','1 年到 3 年','3 年以上'],
+    q4:'4. 您最喜欢的 MLBB 英雄是谁？', q4p:'请填写英雄名称',
+    q5:'5. 如果有精美的 MLBB 陪伴型玩偶，您会购买吗？ *', q5o:['一定会','可能会','不确定','不会'],
+    q6:'6. 您购买玩偶的目的是什么？（多选）', q6o:['自己使用/收藏','送朋友/家人','拍照/晒社交媒体','家居装饰','其他'],
+    q7:'7. 您平时会把玩偶带出门吗？', q7o:['经常会','偶尔','不会'],
+    q8:'8. 您更喜欢哪种风格的玩偶设计？', q8o:['Q版可爱风格','写实还原风格','潮流酷感风格','简约抽象风格'],
+    q9:'9. 您喜欢什么尺寸的玩偶？（多选）', q9o:['10-15cm 小挂件','20-25cm 便携款','30cm以上 大号'],
+    q10:'10. 您更喜欢什么样的 MLBB 英雄形象？（多选）', q10o:['可爱的','酷的','我常用的英雄','皮肤最好看的','强力/胜率高的'],
+    q11:'11. 您愿意为单个 MLBB 玩偶支付多少钱？ *', q11o:['30元以下','30-50元','50-100元','100-150元','150元以上'],
+    q12:'12. 您通常在哪里购买玩偶？（多选）', q12o:['电商平台（Shopee/Lazada/Tokopedia）','线下门店/商场','社交媒体/直播带货','游戏内商城','其他'],
+    q13:'13. 社交媒体上的推荐会影响您的购买决定吗？', q13o:['影响很大','有一些影响','不影响'],
+    q14:'14. 如果您喜欢的 KOL/电竞选手推荐 MLBB 玩偶，您会购买吗？', q14o:['一定会买','可能会考虑','不会'],
+    submit:'提交问卷', submitting:'提交中…',
+    ok:'✓ 回答已成功提交！感谢您的参与。', err:'提交失败，请重试。',
+    thanks:'感谢您的参与！', thanks2:'您的回答已实时记录到我们的数据表，非常感谢您的配合。',
+    again:'再填一份'
+  },
+  en: {
+    title:'MLBB Companion Merchandise Market Survey',
+    sub:"Help us understand Southeast Asian youth's preferences for MLBB IP companion plush toys",
+    req:'* = required',
+    s1:'Part 1: Basic Information', s2:'Part 2: MLBB Gaming Connection', s3:'Part 3: Attitude Towards Companion Merchandise',
+    s4:'Part 4: Design Preferences', s5:'Part 5: Pricing & Purchase Channels', s6:'Part 6: Social Media Influence',
+    q1:'1. What is your gender?', q1o:['Male','Female','Other / Prefer not to say'],
+    q2:'2. Are you familiar with Mobile Legends: Bang Bang (MLBB)? *', q2o:['Yes, I play it',"I've heard of it but don't play","No, I'm not familiar"],
+    q3:'3. How long have you been playing MLBB?', q3n:'(Only for current players)',
+    q3o:['Less than 6 months','6-12 months','1-3 years','More than 3 years'],
+    q4:'4. Who is your favorite MLBB hero?', q4p:'Enter hero name',
+    q5:'5. Would you buy an MLBB companion plush toy? *', q5o:['Definitely yes','Probably yes','Not sure','Probably not'],
+    q6:'6. Why would you buy a plush toy? (multi-select)', q6o:['Personal use/Collection','Gift for friends/family','For photos/Social media','Home decoration','Other'],
+    q7:'7. Do you usually take plush toys outside?', q7o:['Often','Sometimes','Never'],
+    q8:'8. Which design style do you prefer?', q8o:['Chibi/Cute style','Realistic style','Trendy/Cool style','Minimalist/Abstract style'],
+    q9:'9. What size do you prefer? (multi-select)', q9o:['Keychain size: 10-15cm','Portable size: 20-25cm','Large size: 30cm+'],
+    q10:'10. What hero style do you prefer? (multi-select)', q10o:['Cute','Cool','Heroes I often use','Best-looking skins','Powerful/High win rate'],
+    q11:'11. How much would you pay per plush toy? *', q11o:['Below 30 yuan','30-50 yuan','50-100 yuan','100-150 yuan','Above 150 yuan'],
+    q12:'12. Where do you usually buy plush toys? (multi-select)', q12o:['E-commerce (Shopee/Lazada/Tokopedia)','Physical stores/Malls','Social media/Live shopping','In-game store','Other'],
+    q13:'13. Do social media recommendations affect your buying decisions?', q13o:['Very influential','Somewhat influential','Not influential at all'],
+    q14:'14. Would you buy if recommended by a KOL/esports player?', q14o:['Definitely would buy','Might consider','Would not buy'],
+    submit:'Submit Survey', submitting:'Submitting…',
+    ok:'✓ Response saved successfully! Thank you.', err:'Submission failed, please try again.',
+    thanks:'Thank you for your participation!', thanks2:'Your response has been recorded in real time. We appreciate your feedback.',
+    again:'Fill another response'
+  },
+  id: {
+    title:'Survei Pasar Merchandise Pendamping MLBB',
+    sub:'Bantu kami memahami preferensi anak muda Asia Tenggara untuk boneka pendamping IP MLBB',
+    req:'* = wajib diisi',
+    s1:'Bagian 1: Informasi Dasar', s2:'Bagian 2: Hubungan dengan Game MLBB', s3:'Bagian 3: Sikap Terhadap Merchandise Pendamping',
+    s4:'Bagian 4: Preferensi Desain', s5:'Bagian 5: Harga & Saluran Pembelian', s6:'Bagian 6: Pengaruh Media Sosial',
+    q1:'1. Apa jenis kelamin Anda?', q1o:['Laki-laki','Perempuan','Lainnya / Tidak ingin menyebutkan'],
+    q2:'2. Apakah Anda mengenal Mobile Legends: Bang Bang (MLBB)? *', q2o:['Ya, saya bermain','Pernah dengar tapi tidak bermain','Tidak kenal game ini'],
+    q3:'3. Sudah berapa lama Anda bermain MLBB?', q3n:'(Hanya untuk pemain aktif)',
+    q3o:['Kurang dari 6 bulan','6-12 bulan','1-3 tahun','Lebih dari 3 tahun'],
+    q4:'4. Siapa hero MLBB favorit Anda?', q4p:'Tuliskan nama hero',
+    q5:'5. Apakah Anda akan membeli boneka pendamping MLBB? *', q5o:['Pasti ya','Mungkin ya','Tidak yakin','Tidak akan'],
+    q6:'6. Apa tujuan Anda membeli boneka? (pilih beberapa)', q6o:['Koleksi pribadi','Hadiah untuk teman/keluarga','Foto/Media sosial','Dekorasi rumah','Lainnya'],
+    q7:'7. Apakah Anda sering membawa boneka keluar rumah?', q7o:['Sering','Kadang-kadang','Tidak pernah'],
+    q8:'8. Gaya desain boneka mana yang Anda sukai?', q8o:['Gaya Chibi/Lucu','Gaya Realistis','Gaya Trendi/Keren','Gaya Minimalis/Abstrak'],
+    q9:'9. Ukuran boneka apa yang Anda sukai? (pilih beberapa)', q9o:['Ukuran gantungan: 10-15cm','Ukuran portabel: 20-25cm','Ukuran besar: 30cm+'],
+    q10:'10. Gaya hero seperti apa yang Anda sukai? (pilih beberapa)', q10o:['Lucu','Keren','Hero yang sering saya pakai','Skin paling bagus','Kuat/Tingkat menang tinggi'],
+    q11:'11. Berapa yang bersedia Anda bayarkan per boneka? *', q11o:['Di bawah 30 yuan','30-50 yuan','50-100 yuan','100-150 yuan','Di atas 150 yuan'],
+    q12:'12. Di mana biasanya Anda membeli boneka? (pilih beberapa)', q12o:['E-commerce (Shopee/Lazada/Tokopedia)','Toko fisik/Mall','Media sosial/Live shopping','Toko dalam game','Lainnya'],
+    q13:'13. Apakah rekomendasi di media sosial memengaruhi keputusan pembelian Anda?', q13o:['Sangat berpengaruh','Sedikit berpengaruh','Tidak berpengaruh'],
+    q14:'14. Jika direkomendasikan oleh KOL/pemain esports, apakah Anda akan membeli?', q14o:['Pasti akan beli','Mungkin akan pertimbangkan','Tidak akan beli'],
+    submit:'Kirim Survei', submitting:'Mengirim…',
+    ok:'✓ Jawaban berhasil dikirim! Terima kasih.', err:'Pengiriman gagal, silakan coba lagi.',
+    thanks:'Terima kasih atas partisipasi Anda!', thanks2:'Jawaban Anda telah dicatat secara real time. Kami sangat menghargai masukan Anda.',
+    again:'Isi respons lain'
+  }
+};
+
+let lang = 'zh', done = false;
+
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach((b,i) => b.classList.toggle('active',['zh','en','id'][i]===l));
+  render();
+}
+
+function rad(name, opts, req) {
+  return opts.map((o,i)=>`<label class="opt"><input type="radio" name="${name}" value="${i}"${req?' required':''}><span>${o}</span></label>`).join('');
+}
+function chk(name, opts) {
+  return opts.map((o,i)=>`<label class="opt"><input type="checkbox" name="${name}" value="${i}"><span>${o}</span></label>`).join('');
+}
+
+function render() {
+  const t = T[lang];
+  if (done) {
+    document.getElementById('main').innerHTML = `<div class="card"><div class="success-wrap">
+      <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="success-title">${t.thanks}</div>
+      <div class="success-sub">${t.thanks2}</div>
+      <button class="again-btn" onclick="done=false;render()">${t.again}</button>
+    </div></div>`;
+    return;
+  }
+  document.getElementById('main').innerHTML = `
+  <div class="card" style="margin-bottom:1rem">
+    <div class="survey-title">${t.title}</div>
+    <div class="survey-sub" style="margin-top:6px">${t.sub}</div>
+  </div>
+  <div class="card">
+    <div class="required-note">${t.req}</div>
+    <form id="sf" onsubmit="doSubmit(event)">
+      <div class="section-title">${t.s1}</div>
+      <div class="q-block"><div class="q-label">${t.q1}</div><div class="radio-group">${rad('q1',t.q1o)}</div></div>
+
+      <div class="section-title">${t.s2}</div>
+      <div class="q-block"><div class="q-label">${t.q2}</div><div class="radio-group">${rad('q2',t.q2o,true)}</div></div>
+      <div class="q-block"><div class="q-label">${t.q3}</div><div class="q-sub">${t.q3n}</div><div class="radio-group">${rad('q3',t.q3o)}</div></div>
+      <div class="q-block"><div class="q-label">${t.q4}</div><input class="text-input" name="q4" placeholder="${t.q4p}"></div>
+
+      <div class="section-title">${t.s3}</div>
+      <div class="q-block"><div class="q-label">${t.q5}</div><div class="radio-group">${rad('q5',t.q5o,true)}</div></div>
+      <div class="q-block"><div class="q-label">${t.q6}</div><div class="check-group">${chk('q6',t.q6o)}</div></div>
+      <div class="q-block"><div class="q-label">${t.q7}</div><div class="radio-group">${rad('q7',t.q7o)}</div></div>
+
+      <div class="section-title">${t.s4}</div>
+      <div class="q-block"><div class="q-label">${t.q8}</div><div class="radio-group">${rad('q8',t.q8o)}</div></div>
+      <div class="q-block"><div class="q-label">${t.q9}</div><div class="check-group">${chk('q9',t.q9o)}</div></div>
+      <div class="q-block"><div class="q-label">${t.q10}</div><div class="check-group">${chk('q10',t.q10o)}</div></div>
+
+      <div class="section-title">${t.s5}</div>
+      <div class="q-block"><div class="q-label">${t.q11}</div><div class="radio-group">${rad('q11',t.q11o,true)}</div></div>
+      <div class="q-block"><div class="q-label">${t.q12}</div><div class="check-group">${chk('q12',t.q12o)}</div></div>
+
+      <div class="section-title">${t.s6}</div>
+      <div class="q-block"><div class="q-label">${t.q13}</div><div class="radio-group">${rad('q13',t.q13o)}</div></div>
+      <div class="q-block"><div class="q-label">${t.q14}</div><div class="radio-group">${rad('q14',t.q14o)}</div></div>
+
+      <button type="submit" class="submit-btn" id="sbtn">${t.submit}</button>
+      <div class="status-bar" id="status"></div>
+    </form>
+  </div>`;
+}
+
+async function doSubmit(e) {
+  e.preventDefault();
+  const t = T[lang], form = e.target;
+  const btn = document.getElementById('sbtn'), st = document.getElementById('status');
+  btn.disabled = true; btn.textContent = t.submitting;
+  st.className = 'status-bar s-loading'; st.textContent = '⏳ ...';
+
+  const data = { ts: new Date().toISOString(), lang };
+  ['q1','q2','q3','q5','q7','q8','q11','q13','q14'].forEach(q => {
+    const el = form.querySelector(`input[name="${q}"]:checked`);
+    data[q] = el ? parseInt(el.value) : null;
+  });
+  data.q4 = form.querySelector('input[name="q4"]').value || '';
+  ['q6','q9','q10','q12'].forEach(q => {
+    data[q] = Array.from(form.querySelectorAll(`input[name="${q}"]:checked`)).map(el => parseInt(el.value));
+  });
+
+  try {
+    await fetch(SHEET_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    st.className = 'status-bar s-ok'; st.textContent = t.ok;
+    setTimeout(() => { done = true; render(); window.scrollTo(0,0); }, 1200);
+  } catch(err) {
+    st.className = 'status-bar s-err'; st.textContent = t.err;
+    btn.disabled = false; btn.textContent = t.submit;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
